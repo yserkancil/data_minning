@@ -1,0 +1,136 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Dec 19 17:08:16 2022
+
+@author: yusuf
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn as sns
+
+
+#delete NULL values
+veriler=pd.read_csv('smoking.csv')
+veriler = veriler.select_dtypes(include=['float64','int64'])
+#print(veriler)  
+del veriler['HDL'] ; del veriler['LDL']  ; del veriler['Gtp'] ; del veriler['AST'] ; del veriler['ALT'] ; del veriler['triglyceride']
+veriler.rename(columns = {"fasting blood sugar" : "sugar"},inplace = True)
+veriler.info()
+
+#do analysis outlier datas
+
+df_age_column = veriler['age']
+sns.boxplot(x=df_age_column)   #visually shows a graph of outliers
+Quarter1 = df_age_column.quantile(0.25)
+Quarter3 = df_age_column.quantile(0.75)
+IQR = Quarter3-Quarter3
+lower_limit = Quarter1-1.5*IQR
+high_limit = Quarter3+(1.5*IQR)
+
+#print(df_age_column)
+
+#This codes  delete for outliers
+
+"""type(df_age_column)
+df_age_column = pd.DataFrame(df_age_column)
+clean_df = df_age_column[~((df_age_column < (lower_limit)) | (df_age_column > (high_limit))).any(axis = 1)] 
+print(clean_df)
+ 
+
+#This codes for load with avarage values
+
+df_age_column = pd.DataFrame(df_age_column)
+avarage=df_age_column.mean()
+df_age_column[~((df_age_column < (lower_limit)) | (df_age_column > (high_limit))).any(axis = 1)]=avarage
+
+print(df_age_column)"""
+
+empty=veriler.isnull().sum().sum() #if any value is empty, select that value and add one to counter
+empty1=veriler[veriler.isnull().any(axis=1)]#if in the datas any feature null you select that line 
+print(empty,empty1)
+
+veriler.dropna(inplace=True) #parmenantly delete null values
+
+
+#conqure datas for test and train
+from sklearn.model_selection import train_test_split
+
+independent_variables= veriler.iloc[:,0:15].values
+dependent_variables= veriler.iloc[:,15:16].values
+ 
+independent_variables_train,independent_variables_test,dependent_variables_train,dependent_variables_test = train_test_split(independent_variables,dependent_variables,test_size=0.33 ,random_state=(0))
+
+
+#scaling of datas
+from sklearn.preprocessing import StandardScaler
+sc = StandardScaler()   
+
+independent_variables_train = sc.fit_transform(independent_variables_train)
+independent_variables_test = sc.transform(independent_variables_test)
+
+from sklearn.linear_model import LogisticRegression
+logr = LogisticRegression(random_state=0)
+logr.fit(independent_variables_train,dependent_variables_train)
+
+dependent_variables_pred = logr.predict(independent_variables_test)
+print(dependent_variables_pred)
+print(dependent_variables_test)
+
+
+#show with confusing matrix false and true values
+from sklearn.metrics import confusion_matrix
+
+cm = confusion_matrix(dependent_variables_test, dependent_variables_pred)
+#print(cm)
+
+
+#KNN Neighbors
+from sklearn.neighbors import KNeighborsClassifier
+
+knn = KNeighborsClassifier(n_neighbors=1 , metric='minkowski')
+knn.fit(independent_variables_train , dependent_variables_train)
+dependent_variables_pred = knn.predict(independent_variables_test)
+
+cm = confusion_matrix(dependent_variables_test, dependent_variables_pred)
+#print(cm)
+
+#increase succes with support vector machine
+from sklearn.svm import SVC
+
+svc = SVC(kernel='rbf')
+svc.fit(independent_variables_train , dependent_variables_train)
+dependent_variables_pred = svc.predict(independent_variables_test)
+
+#print("after from SVM")
+cm = confusion_matrix(dependent_variables_test, dependent_variables_pred)
+print(cm)
+
+#Gausian Naive Bayes
+from sklearn.naive_bayes import GaussianNB 
+
+gnb=GaussianNB()
+gnb.fit(independent_variables_train,dependent_variables_train)
+
+dependent_pred = gnb.predict(independent_variables_test)
+
+cm = confusion_matrix(dependent_variables_test, dependent_variables_pred)
+
+print("after from GNB")
+print(cm)
+
+#Decison tree algorithm
+from sklearn.tree import DecisionTreeClassifier
+
+dtc = DecisionTreeClassifier(criterion='entropy')
+
+dtc.fit(independent_variables_train,dependent_variables_train)
+
+dependent_pred = dtc.predict(independent_variables_test)
+
+cm = confusion_matrix(dependent_variables_test, dependent_variables_pred)
+
+print("after from DTC and last status")
+print(cm)
+
+
